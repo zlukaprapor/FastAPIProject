@@ -78,6 +78,6 @@ HTTP 204
 # Test 6: Verify deletion
 GET {{host}}/api/travel-plans/{{plan_id}}
 
-#HTTP 404
+HTTP 404
 [Asserts]
 jsonpath "$.error" contains "not found"

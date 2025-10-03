@@ -1,6 +1,5 @@
 # ===================================================================
-# ENHANCED RACE CONDITION TESTS
-# Multiple strategies for reliable race condition detection
+# ENHANCED RACE CONDITION TESTS (FIXED)
 # ===================================================================
 
 # Setup: Create plan for race condition testing
@@ -37,7 +36,7 @@ jsonpath "$.title" == "First Update"
 
 # Update 2: Using old version (should fail with 409)
 PUT {{host}}/api/travel-plans/{{race_plan_id}}
-Content-Type: application/json
+Content-Type: application/Json
 {
   "title": "Second Update (Should Fail)",
   "budget": 1200.00,
@@ -50,7 +49,6 @@ jsonpath "$.error" contains "Conflict"
 jsonpath "$.current_version" == 2
 
 # Strategy 2: Stress Test Location Auto-Ordering
-# Rapidly create multiple locations to test concurrent insertion
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
 Content-Type: application/json
 {
@@ -60,17 +58,19 @@ Content-Type: application/json
 
 HTTP 201
 [Captures]
+location_a_id: jsonpath "$.id"
 location_a_order: jsonpath "$.visit_order"
 
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
 Content-Type: application/json
 {
-  "name": "Location B", 
+  "name": "Location B",
   "budget": 150.00
 }
 
 HTTP 201
 [Captures]
+location_b_id: jsonpath "$.id"
 location_b_order: jsonpath "$.visit_order"
 
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
@@ -82,17 +82,24 @@ Content-Type: application/json
 
 HTTP 201
 [Captures]
+location_c_id: jsonpath "$.id"
 location_c_order: jsonpath "$.visit_order"
 
-# Verify proper ordering (should be 1, 2, 3)
+# Verify proper ordering (check each location individually)
 GET {{host}}/api/travel-plans/{{race_plan_id}}
-
+#===============================================================================
+#Проблема: Hurl не підтримує порівняння двох jsonpath виразів між собою
 HTTP 200
 [Asserts]
 jsonpath "$.locations" count == 3
-jsonpath "$.locations[0].visit_order" < jsonpath "$.locations[1].visit_order"
-jsonpath "$.locations[1].visit_order" < jsonpath "$.locations[2].visit_order"
-
+# Verify locations are returned in order by checking names and visit_order
+jsonpath "$.locations[0].name" == "Location A"
+jsonpath "$.locations[0].visit_order" == 1
+jsonpath "$.locations[1].name" == "Location B"
+jsonpath "$.locations[1].visit_order" == 2
+jsonpath "$.locations[2].name" == "Location C"
+jsonpath "$.locations[2].visit_order" == 3
+#===============================================================================
 # Strategy 3: Cascade Delete Race Condition Test
 DELETE {{host}}/api/travel-plans/{{race_plan_id}}
 
