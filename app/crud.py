@@ -110,6 +110,14 @@ def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocati
     if not plan:
         raise HTTPException(status_code=404, detail="Travel plan not found")
 
+        # Якщо visit_order не переданий -> визначаємо наступний
+    visit_order = location_data.visit_order
+    if visit_order is None:
+        max_order = db.query(func.max(models.Location.visit_order)) \
+            .filter(models.Location.travel_plan_id == plan_id) \
+            .scalar()
+        visit_order = 1 if max_order is None else max_order + 1
+
     # Use visit_order from request or let trigger auto-assign
     new_location = models.Location(
         travel_plan_id=plan_id,
@@ -117,7 +125,7 @@ def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocati
         address=location_data.address,
         latitude=location_data.latitude,
         longitude=location_data.longitude,
-        visit_order=location_data.visit_order,  # Can be None, trigger will handle it
+        visit_order=visit_order,  # Can be None, trigger will handle it
         arrival_date=location_data.arrival_date,
         departure_date=location_data.departure_date,
         budget=location_data.budget,

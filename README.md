@@ -132,8 +132,8 @@ hurl --test tests/*.hurl
 - `500` - Internal Server Error
 - `503` - Service Unavailable (health check failed)
 
-.\hurl\hurl --test --variable host=http://localhost:3000 tests\crud.hurl
-.\hurl\hurl --test --variable host=http://localhost:3000 tests\management.hurl
-.\hurl\hurl --test --variable host=http://localhost:3000 tests\race-conditions.hurl
-.\hurl\hurl --test --variable host=http://localhost:3000 tests\validation.hurl   
+.\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\crud.hurl
+.\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\management.hurl
+.\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\race-conditions.hurl
+.\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\validation.hurl   
 

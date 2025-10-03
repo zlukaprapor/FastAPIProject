@@ -103,7 +103,7 @@ class LocationBase(BaseModel):
     address: Optional[str]
     latitude: Optional[Decimal]
     longitude: Optional[Decimal]
-    visit_order: int
+    visit_order: Optional[int] = None
     arrival_date: Optional[datetime]
     departure_date: Optional[datetime]
     budget: Optional[Decimal]
