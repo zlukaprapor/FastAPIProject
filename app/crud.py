@@ -106,11 +106,22 @@ def delete_plan(db: Session, plan_id: UUID):
 
 def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocationRequest):
     # Check if plan exists
-    plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).first()
+    plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).with_for_update().first()
     if not plan:
         raise HTTPException(status_code=404, detail="Travel plan not found")
 
-        # Якщо visit_order не переданий -> визначаємо наступний
+    # Перевірка версії плану
+    if plan.version != location_data.plan_version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "Conflict: Travel plan was modified by another user",
+                "current_version": plan.version,
+                "message": "Please refresh the plan and try again"
+            }
+        )
+
+    # Якщо visit_order не переданий -> визначаємо наступний
     visit_order = location_data.visit_order
     if visit_order is None:
         max_order = db.query(func.max(models.Location.visit_order)) \
@@ -131,6 +142,7 @@ def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocati
         budget=location_data.budget,
         notes=location_data.notes
     )
+    plan.version += 1
     db.add(new_location)
     db.commit()
     db.refresh(new_location)
@@ -142,7 +154,27 @@ def update_location(db: Session, location_id: UUID, location_data: schemas.Updat
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
 
-    update_data = location_data.model_dump(exclude_unset=True)
+    # Читаємо план з блокуванням
+    plan = db.query(models.TravelPlan).filter(
+        models.TravelPlan.id == location.travel_plan_id
+    ).with_for_update().first()
+
+    if not plan:
+        raise HTTPException(status_code=404, detail="Travel plan not found")
+
+    # Перевірка версії плану
+    if plan.version != location_data.plan_version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "Conflict: Travel plan was modified by another user",
+                "current_version": plan.version,
+                "message": "Please refresh the plan and try again"
+            }
+        )
+
+    # ❗ ВИКЛЮЧАЄМО plan_version з update_data
+    update_data = location_data.model_dump(exclude_unset=True, exclude={'plan_version'})
 
     # Handle visit_order updates with constraint check
     if 'visit_order' in update_data and update_data['visit_order'] is not None:
@@ -159,18 +191,40 @@ def update_location(db: Session, location_id: UUID, location_data: schemas.Updat
                 detail=f"Visit order {update_data['visit_order']} is already taken for this travel plan"
             )
 
+    # Оновлюємо лише поля локації
     for key, value in update_data.items():
         setattr(location, key, value)
+
+    # Інкрементуємо версію плану
+    plan.version += 1
 
     db.commit()
     db.refresh(location)
     return location
 
 
-def delete_location(db: Session, location_id: UUID):
+def delete_location(db: Session, location_id: UUID, plan_version: int):
     location = db.query(models.Location).filter(models.Location.id == location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
 
+    # Читаємо план з блокуванням
+    plan = db.query(models.TravelPlan).filter(
+        models.TravelPlan.id == location.travel_plan_id
+    ).with_for_update().first()
+
+    # Перевірка версії
+    if plan.version != plan_version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "Conflict: Travel plan was modified by another user",
+                "current_version": plan.version,
+                "message": "Please refresh the plan and try again"
+            }
+        )
+
+    # Інкрементуємо версію плану
+    plan.version += 1
     db.delete(location)
     db.commit()

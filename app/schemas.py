@@ -122,6 +122,7 @@ class TravelPlanDetails(TravelPlanBase):
 
 
 class CreateLocationRequest(BaseModel):
+    plan_version: int = Field(..., ge=1, description="Current version of the travel plan")
     name: str = Field(..., min_length=1, max_length=200)
     address: Optional[str] = None
     latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
@@ -195,6 +196,7 @@ class CreateLocationRequest(BaseModel):
 
 
 class UpdateLocationRequest(BaseModel):
+    plan_version: int = Field(..., ge=1, description="Current version of the travel plan")
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     address: Optional[str] = None
     latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
