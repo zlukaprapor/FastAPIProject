@@ -1,5 +1,5 @@
 # ===================================================================
-# ENHANCED RACE CONDITION TESTS (FIXED)
+# ENHANCED RACE CONDITION TESTS (WITH PARENT-LEVEL VERSIONING)
 # ===================================================================
 
 # Setup: Create plan for race condition testing
@@ -48,12 +48,21 @@ HTTP 409
 jsonpath "$.error" contains "Conflict"
 jsonpath "$.current_version" == 2
 
-# Strategy 2: Stress Test Location Auto-Ordering
+# Strategy 2: Location operations with parent versioning
+# Get current plan version before adding locations
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Captures]
+current_version: jsonpath "$.version"
+
+# Add Location A with current version
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Location A",
-  "budget": 100.00
+  "budget": 100.00,
+  "plan_version": {{current_version}}
 }
 
 HTTP 201
@@ -61,11 +70,33 @@ HTTP 201
 location_a_id: jsonpath "$.id"
 location_a_order: jsonpath "$.visit_order"
 
+# Get updated version after Location A
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Captures]
+version_after_a: jsonpath "$.version"
+
+# Add Location B with OLD version (should fail)
+POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
+Content-Type: application/json
+{
+  "name": "Location B FAIL",
+  "budget": 150.00,
+  "plan_version": {{current_version}}
+}
+
+HTTP 409
+[Asserts]
+jsonpath "$.error" contains "Conflict"
+
+# Add Location B with CORRECT version (should succeed)
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Location B",
-  "budget": 150.00
+  "budget": 150.00,
+  "plan_version": {{version_after_a}}
 }
 
 HTTP 201
@@ -73,11 +104,20 @@ HTTP 201
 location_b_id: jsonpath "$.id"
 location_b_order: jsonpath "$.visit_order"
 
+# Get updated version after Location B
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Captures]
+version_after_b: jsonpath "$.version"
+
+# Add Location C with correct version
 POST {{host}}/api/travel-plans/{{race_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Location C",
-  "budget": 200.00
+  "budget": 200.00,
+  "plan_version": {{version_after_b}}
 }
 
 HTTP 201
@@ -85,22 +125,77 @@ HTTP 201
 location_c_id: jsonpath "$.id"
 location_c_order: jsonpath "$.visit_order"
 
-# Verify proper ordering (check each location individually)
+# Verify proper ordering
 GET {{host}}/api/travel-plans/{{race_plan_id}}
-#===============================================================================
-#Проблема: Hurl не підтримує порівняння двох jsonpath виразів між собою
+
 HTTP 200
 [Asserts]
 jsonpath "$.locations" count == 3
-# Verify locations are returned in order by checking names and visit_order
 jsonpath "$.locations[0].name" == "Location A"
 jsonpath "$.locations[0].visit_order" == 1
 jsonpath "$.locations[1].name" == "Location B"
 jsonpath "$.locations[1].visit_order" == 2
 jsonpath "$.locations[2].name" == "Location C"
 jsonpath "$.locations[2].visit_order" == 3
-#===============================================================================
-# Strategy 3: Cascade Delete Race Condition Test
+
+# Strategy 3: Concurrent location updates
+# Get current version
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Captures]
+version_before_update: jsonpath "$.version"
+
+# Update Location A with correct version
+PUT {{host}}/api/locations/{{location_a_id}}
+Content-Type: application/json
+{
+  "budget": 125.00,
+  "plan_version": {{version_before_update}}
+}
+
+HTTP 200
+
+# Try to update Location B with OLD version (should fail)
+PUT {{host}}/api/locations/{{location_b_id}}
+Content-Type: application/json
+{
+  "notes": "This should fail",
+  "plan_version": {{version_before_update}}
+}
+
+HTTP 409
+[Asserts]
+jsonpath "$.error" contains "Conflict"
+
+# Strategy 4: Delete with version check
+# Get current version
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Captures]
+version_before_delete: jsonpath "$.version"
+
+# Try to delete with old version (should fail)
+DELETE {{host}}/api/locations/{{location_c_id}}?plan_version={{version_before_update}}
+
+HTTP 409
+[Asserts]
+jsonpath "$.error" contains "Conflict"
+
+# Delete with correct version (should succeed)
+DELETE {{host}}/api/locations/{{location_c_id}}?plan_version={{version_before_delete}}
+
+HTTP 204
+
+# Verify location deleted
+GET {{host}}/api/travel-plans/{{race_plan_id}}
+
+HTTP 200
+[Asserts]
+jsonpath "$.locations" count == 2
+
+# Strategy 5: Cascade Delete Race Condition Test
 DELETE {{host}}/api/travel-plans/{{race_plan_id}}
 
 HTTP 204
