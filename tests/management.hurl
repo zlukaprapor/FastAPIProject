@@ -9,6 +9,7 @@ Content-Type: application/json
 HTTP 201
 [Captures]
 location_plan_id: jsonpath "$.id"
+location_plan_version: jsonpath "$.version"
 
 # Test 1: Add first location (auto-ordered)
 POST {{host}}/api/travel-plans/{{location_plan_id}}/locations
@@ -21,7 +22,8 @@ Content-Type: application/json
   "arrival_date": "2025-06-02T09:00:00Z",
   "departure_date": "2025-06-02T12:00:00Z",
   "budget": 25.00,
-  "notes": "Visit in the morning for fewer crowds"
+  "notes": "Visit in the morning for fewer crowds",
+  "plan_version": {{location_plan_version}}
 }
 
 HTTP 201
@@ -33,16 +35,24 @@ jsonpath "$.name" == "Eiffel Tower"
 jsonpath "$.visit_order" == 1
 jsonpath "$.travel_plan_id" == "{{location_plan_id}}"
 
+# Get updated plan version after first location
+GET {{host}}/api/travel-plans/{{location_plan_id}}
+
+HTTP 200
+[Captures]
+location_plan_version: jsonpath "$.version"
+
 # Test 2: Add second location (should be auto-ordered as 2)
 POST {{host}}/api/travel-plans/{{location_plan_id}}/locations
 Content-Type: application/json
 {
-  "name": "Louvre Museum", 
+  "name": "Louvre Museum",
   "address": "Rue de Rivoli, 75001 Paris",
   "latitude": 48.8606,
   "longitude": 2.3376,
   "budget": 15.00,
-  "notes": "Book tickets online"
+  "notes": "Book tickets online",
+  "plan_version": {{location_plan_version}}
 }
 
 HTTP 201
@@ -52,12 +62,20 @@ location2_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.visit_order" == 2
 
+# Get updated plan version after second location
+GET {{host}}/api/travel-plans/{{location_plan_id}}
+
+HTTP 200
+[Captures]
+location_plan_version: jsonpath "$.version"
+
 # Test 3: Add third location (should be auto-ordered as 3)
 POST {{host}}/api/travel-plans/{{location_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Arc de Triomphe",
-  "budget": 12.00
+  "budget": 12.00,
+  "plan_version": {{location_plan_version}}
 }
 
 HTTP 201
@@ -77,14 +95,21 @@ jsonpath "$.locations[0].visit_order" == 1
 jsonpath "$.locations[1].visit_order" == 2
 jsonpath "$.locations[2].visit_order" == 3
 
-# Test 5: Skip reordering test (simplified system)
+# Get plan version before update
+GET {{host}}/api/travel-plans/{{location_plan_id}}
+
+HTTP 200
+[Captures]
+location_plan_version: jsonpath "$.version"
+
 # Test 5: Update single location
 PUT {{host}}/api/locations/{{location1_id}}
 Content-Type: application/json
 {
   "name": "Eiffel Tower (Night Visit)",
   "budget": 30.00,
-  "notes": "Amazing night illumination"
+  "notes": "Amazing night illumination",
+  "plan_version": {{location_plan_version}}
 }
 
 HTTP 200
@@ -93,8 +118,15 @@ jsonpath "$.name" == "Eiffel Tower (Night Visit)"
 jsonpath "$.budget" == 30.00
 jsonpath "$.notes" == "Amazing night illumination"
 
+# Get plan version before delete
+GET {{host}}/api/travel-plans/{{location_plan_id}}
+
+HTTP 200
+[Captures]
+location_plan_version: jsonpath "$.version"
+
 # Test 6: Delete location
-DELETE {{host}}/api/locations/{{location2_id}}
+DELETE {{host}}/api/locations/{{location2_id}}?plan_version={{location_plan_version}}
 
 HTTP 204
 
@@ -104,7 +136,6 @@ GET {{host}}/api/travel-plans/{{location_plan_id}}
 HTTP 200
 [Asserts]
 jsonpath "$.locations" count == 2
-# Order may have gaps (1,3) which is acceptable
 
 # Cleanup
 DELETE {{host}}/api/travel-plans/{{location_plan_id}}

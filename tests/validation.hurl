@@ -197,7 +197,8 @@ POST {{host}}/api/travel-plans/{{valid_plan_id}}/locations
 Content-Type: application/json
 {
   "address": "Somewhere without name",
-  "budget": 100.00
+  "budget": 100.00,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -210,7 +211,8 @@ POST {{host}}/api/travel-plans/{{valid_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "",
-  "budget": 100.00
+  "budget": 100.00,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -222,7 +224,8 @@ POST {{host}}/api/travel-plans/{{valid_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "This location name is extremely long and exceeds the maximum allowed length of 200 characters for location names. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis.",
-  "budget": 100.00
+  "budget": 100.00,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -235,7 +238,8 @@ Content-Type: application/json
 {
   "name": "Invalid Latitude Location",
   "latitude": 91.0,
-  "longitude": 2.2945
+  "longitude": 2.2945,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -249,7 +253,8 @@ Content-Type: application/json
 {
   "name": "Invalid Longitude Location",
   "latitude": 48.8584,
-  "longitude": 181.0
+  "longitude": 181.0,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -263,7 +268,8 @@ Content-Type: application/json
 {
   "name": "Invalid Time Range Location",
   "arrival_date": "2025-06-02T15:00:00Z",
-  "departure_date": "2025-06-02T09:00:00Z"
+  "departure_date": "2025-06-02T09:00:00Z",
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -276,7 +282,8 @@ POST {{host}}/api/travel-plans/{{valid_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Negative Budget Location",
-  "budget": -50.00
+  "budget": -50.00,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -289,7 +296,8 @@ POST {{host}}/api/travel-plans/{{valid_plan_id}}/locations
 Content-Type: application/json
 {
   "name": "Invalid Date Format Location",
-  "arrival_date": "2025-06-32T25:00:00Z"
+  "arrival_date": "2025-06-32T25:00:00Z",
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -307,7 +315,8 @@ Content-Type: application/json
   "arrival_date": "2025-06-02T09:00:00Z",
   "departure_date": "2025-06-02T17:00:00Z",
   "budget": 150.50,
-  "notes": "This is a valid location"
+  "notes": "This is a valid location",
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 201
@@ -323,12 +332,20 @@ jsonpath "$.budget" == 150.50
 # LOCATION UPDATE VALIDATION TESTS
 # ===================================================================
 
+# Get plan version for update tests
+GET {{host}}/api/travel-plans/{{valid_plan_id}}
+
+HTTP 200
+[Captures]
+valid_plan_version: jsonpath "$.version"
+
 # Test 23: Update location with invalid coordinates
 PUT {{host}}/api/locations/{{valid_location_id}}
 Content-Type: application/json
 {
   "name": "Updated Location",
-  "latitude": -91.0
+  "latitude": -91.0,
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -341,7 +358,8 @@ PUT {{host}}/api/locations/{{valid_location_id}}
 Content-Type: application/json
 {
   "arrival_date": "2025-06-02T18:00:00Z",
-  "departure_date": "2025-06-02T08:00:00Z"
+  "departure_date": "2025-06-02T08:00:00Z",
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 400
@@ -357,7 +375,8 @@ jsonpath "$.details[0]" contains "Departure"
 POST {{host}}/api/travel-plans/00000000-0000-0000-0000-000000000000/locations
 Content-Type: application/json
 {
-  "name": "Orphan Location"
+  "name": "Orphan Location",
+  "plan_version": 1
 }
 
 HTTP 404
@@ -368,7 +387,8 @@ jsonpath "$.error" contains "not found"
 PUT {{host}}/api/locations/00000000-0000-0000-0000-000000000000
 Content-Type: application/json
 {
-  "name": "Ghost Location"
+  "name": "Ghost Location",
+  "plan_version": {{valid_plan_version}}
 }
 
 HTTP 404
@@ -396,6 +416,7 @@ Content-Type: application/json
 HTTP 201
 [Captures]
 boundary_plan_id: jsonpath "$.id"
+boundary_plan_version: jsonpath "$.version"
 
 # Test 30: Coordinates at exact boundaries
 POST {{host}}/api/travel-plans/{{boundary_plan_id}}/locations
@@ -403,7 +424,8 @@ Content-Type: application/json
 {
   "name": "Boundary Location",
   "latitude": -90.0,
-  "longitude": 180.0
+  "longitude": 180.0,
+  "plan_version": {{boundary_plan_version}}
 }
 
 HTTP 201

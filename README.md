@@ -34,6 +34,7 @@ venv\Scripts\activate  # Windows
 
 2. **Встановити залежності:**
 ```bash
+python.exe -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -117,8 +118,11 @@ new_order = (max_order or 0) + 1
 ## Тестування
 
 Запустити hurl тести з папки `tests/`:
-```bash
-hurl --test tests/*.hurl
+PowerShel
+cd C:\Users\Oleksii\PycharmProjects\FastAPIProject
+Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.0.0.1:3000 --test $_.FullName }
+
+
 ```
 
 ## HTTP коди відповіді
