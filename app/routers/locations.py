@@ -9,23 +9,15 @@ router = APIRouter(
     tags=["Locations"]
 )
 
-@router.post("/api/travel-plans/{plan_id}/locations",
-             response_model=schemas.LocationBase,
-             status_code=status.HTTP_201_CREATED)
-def create_location(
-    plan_id: UUID,
-    location: schemas.CreateLocationRequest,  # Тепер містить plan_version
-    db: Session = Depends(get_db)
-):
-    return crud.add_location(db, plan_id, location)
 
 @router.put("/{location_id}",
             response_model=schemas.LocationBase)
 def update_location(
     location_id: UUID,
-    location: schemas.UpdateLocationRequest,  # Тепер містить plan_version
+    location: schemas.UpdateLocationRequest,
     db: Session = Depends(get_db)
 ):
+    """Update a location with optimistic locking"""
     return crud.update_location(db, location_id, location)
 
 
@@ -33,7 +25,8 @@ def update_location(
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_location(
     location_id: UUID,
-    plan_version: int = Query(..., ge=1),  # Додаємо query параметр
+    plan_version: int = Query(..., ge=1),
     db: Session = Depends(get_db)
 ):
+    """Delete a location with version check"""
     crud.delete_location(db, location_id, plan_version)
