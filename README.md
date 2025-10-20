@@ -144,4 +144,14 @@ Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.
 
 
 K6
-k6 run tests/performance-tests/tests/smoke-test.js
+Завдання 1:
+k6 run performance-tests/tests/smoke-test.js
+Завдання 2:
+Варіант 1 (простіший):
+k6 run performance-tests/tests/crud-load-test.js
+Завдання 3:
+k6 run performance-tests/tests/write-heavy-load-test.js
+Завдання 4:
+k6 run performance-tests/tests/spike-test.js
+Завдання 5:
+k6 run performance-tests/tests/read-heavy-load-test.js

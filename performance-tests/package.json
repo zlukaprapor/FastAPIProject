@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "K6 Load Testing Suite for Travel Planner API",
   "scripts": {
-    "test:smoke": "k6 run ./tests/smoke-test.js",
+    "test:smoke": "k6 run tests/smoke-test.js",
     "clean": "rm -rf results/*.json"
   },
   "keywords": [
