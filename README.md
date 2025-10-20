@@ -117,8 +117,9 @@ new_order = (max_order or 0) + 1
 
 ## Тестування
 
-Запустити hurl тести з папки `tests/`:
+Запустити hurl тести 
 PowerShel
+
 cd C:\Users\Oleksii\PycharmProjects\FastAPIProject
 Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.0.0.1:3000 --test $_.FullName }
 
@@ -141,3 +142,6 @@ Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.
 .\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\race-conditions.hurl
 .\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\validation.hurl   
 
+
+K6
+k6 run tests/performance-tests/tests/smoke-test.js
