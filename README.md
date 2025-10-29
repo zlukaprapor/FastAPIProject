@@ -146,12 +146,26 @@ Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.
 K6
 Завдання 1:
 k6 run performance-tests/tests/smoke-test.js
+##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/smoke-test.js
+$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/html-report_smoke-test.html"; k6 run performance-tests/tests/smoke-test.js
+
 Завдання 2:
-Варіант 1 (простіший):
 k6 run performance-tests/tests/crud-load-test.js
+##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/crud-load-test.js
+$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/html-report_crud-load-test.html"; k6 run performance-tests/tests/crud-load-test.js
+
 Завдання 3:
 k6 run performance-tests/tests/write-heavy-load-test.js
+##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/write-heavy-load-test.js
+$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/html-report_write-heavy-load-test.html"; k6 run performance-tests/tests/write-heavy-load-test.js
+
 Завдання 4:
 k6 run performance-tests/tests/spike-test.js
+##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/spike-test.js
+$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/html-report_spike-test.html"; k6 run performance-tests/tests/spike-test.js
+
 Завдання 5:
 k6 run performance-tests/tests/read-heavy-load-test.js
+k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/read-heavy-load-test.js
+$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/html-report_read-heavy-load-test.html"; k6 run performance-tests/tests/read-heavy-load-test.js
+
