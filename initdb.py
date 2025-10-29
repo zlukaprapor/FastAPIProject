@@ -6,6 +6,7 @@
 import sys
 from sqlalchemy import create_engine, inspect
 from app.database import Base, DATABASE_URL
+
 from app.models import TravelPlan, Location
 
 

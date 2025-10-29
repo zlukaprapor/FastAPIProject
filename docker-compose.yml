@@ -1,0 +1,82 @@
+name: travel_planner  # Назва Docker Compose проекту/стеку
+
+services:
+  # ================================================
+  # PostgreSQL Database
+  # ================================================
+  postgres:
+    image: postgres:15-alpine  # Легковаговий образ PostgreSQL
+    container_name: travel_planner_db  # Ім'я контейнера
+    restart: unless-stopped  # Автоматичний перезапуск, якщо контейнер впаде
+    environment:
+      POSTGRES_DB: ${DB_NAME:-travel_planner}  # Назва бази даних (дефолт: travel_planner)
+      POSTGRES_USER: ${DB_USER:-travel_user}  # Користувач бази даних
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}  # Пароль користувача
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Том для збереження даних між перезапусками
+    networks:
+      - travel_planner_network  # Підключення до мережі проекту
+    healthcheck:  # Перевірка готовності сервісу
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-travel_user}"]  # Команда для перевірки
+      interval: 10s  # Інтервал перевірки
+      timeout: 5s  # Таймаут на відповідь
+      retries: 5  # Кількість спроб
+    deploy:
+      resources:  # Обмеження ресурсів
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  # ================================================
+  # Travel Planner API
+  # ================================================
+  app:
+    build:
+      context: .  # Папка з Dockerfile
+      dockerfile: Dockerfile
+      target: runtime  # Цільовий етап збірки (multi-stage build)
+    container_name: travel_planner_api
+    restart: unless-stopped
+    environment:
+      # URL для підключення до бази даних PostgreSQL
+      DATABASE_URL: postgresql://${DB_USER:-travel_user}:${DB_PASSWORD:-secure_password}@postgres:5432/${DB_NAME:-travel_planner}
+    ports:
+      - "${APP_PORT:-4567}:4567"  # Проброс порту з контейнера на хост
+    depends_on:
+      postgres:
+        condition: service_healthy  # Чекати, поки база буде готова
+    networks:
+      - travel_planner_network
+    deploy:
+      resources:  # Обмеження ресурсів
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ================================================
+  # K6 Performance Testing
+  # ================================================
+  k6:
+    image: grafana/k6:latest  # Образ для навантажувального тестування
+    container_name: k6_tester
+    volumes:
+      - ./performance-tests:/performance-tests  # Підключення локальної папки з тестами
+    working_dir: /performance-tests  # Робоча директорія всередині контейнера
+    networks:
+      - travel_planner_network
+    depends_on:
+      - app  # Чекати запуск API перед тестами
+
+# ================================================
+# Том для збереження даних PostgreSQL
+# ================================================
+volumes:
+  postgres_data:
+    driver: local
+
+# ================================================
+# Мережа для взаємодії між контейнерами
+# ================================================
+networks:
+  travel_planner_network:
+    driver: bridge
