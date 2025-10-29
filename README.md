@@ -183,7 +183,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/doker-html-report_heavy-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/doker-html-report_write-heavy-load-test.html `
    k6 run /performance-tests/tests/write-heavy-load-test.js
    
    
