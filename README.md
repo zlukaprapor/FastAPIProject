@@ -142,13 +142,10 @@ Get-ChildItem .\tests\*.hurl | ForEach-Object { hurl --variable host=http://127.
 .\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\race-conditions.hurl
 .\hurl\hurl --test --variable host=http://localhost:3000 --verbose tests\validation.hurl   
 
-docker compose up --build -d
+docker-compose up --build
 
-docker compose logs -f app
+docker-compose down -v
 
-docker compose ps  
-
-docker compose down
 
 K6
 Завдання 1:

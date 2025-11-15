@@ -7,4 +7,3 @@ until pg_isready -h postgres -p 5432 -U repuser -d travel_planner_prod; do
   sleep 2
 done
 echo "Publisher is ready!"
-

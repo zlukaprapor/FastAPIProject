@@ -17,4 +17,3 @@ run_sql_dir() {
 
 run_sql_dir "/docker-entrypoint-migrations"
 run_sql_dir "/docker-entrypoint-replications"
-
