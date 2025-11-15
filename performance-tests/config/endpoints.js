@@ -5,7 +5,7 @@
 
 // Базовий URL API (можна перевизначити через змінну середовища)
 export const BASE_URL = __ENV.API_URL || 'http://app:4567';
-
+//export const BASE_URL = __ENV.API_URL || 'http://127.0.0.1:3000';
 // API Endpoints
 export const ENDPOINTS = {
   TRAVEL_PLANS: `${BASE_URL}/api/travel-plans`,

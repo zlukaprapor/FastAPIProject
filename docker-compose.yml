@@ -1,28 +1,95 @@
-name: travel_planner  # Назва Docker Compose проекту/стеку
+name: travel_planner
 
 services:
   # ================================================
-  # PostgreSQL Database
+  # PostgreSQL Database (Publisher/Master)
   # ================================================
   postgres:
-    image: postgres:15-alpine  # Легковаговий образ PostgreSQL
-    container_name: travel_planner_db  # Ім'я контейнера
-    restart: unless-stopped  # Автоматичний перезапуск, якщо контейнер впаде
+    image: postgres:18-alpine
+    container_name: travel_planner_db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-travel_planner}  # Назва бази даних (дефолт: travel_planner)
-      POSTGRES_USER: ${DB_USER:-travel_user}  # Користувач бази даних
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}  # Пароль користувача
+      POSTGRES_DB: travel_planner_prod
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_logical_replication_workers=4"
+      - "-c"
+      - "max_worker_processes=10"
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Том для збереження даних між перезапусками
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-migrations:ro
+      - ./db/replications/publisher:/docker-entrypoint-replications:ro
+      - ./db/replications/common:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
     networks:
-      - travel_planner_network  # Підключення до мережі проекту
-    healthcheck:  # Перевірка готовності сервісу
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-travel_user}"]  # Команда для перевірки
-      interval: 10s  # Інтервал перевірки
-      timeout: 5s  # Таймаут на відповідь
-      retries: 5  # Кількість спроб
+      - travel_planner_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel -d travel_planner_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     deploy:
-      resources:  # Обмеження ресурсів
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  # ================================================
+  # PostgreSQL Replica (Subscriber/Slave)
+  # ================================================
+  postgres_sub:
+    image: postgres:18-alpine
+    container_name: travel_planner_replica
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: travel_planner_prod
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_logical_replication_workers=4"
+      - "-c"
+      - "max_worker_processes=10"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-migrations:ro
+      - ./db/replications/subscriber:/docker-entrypoint-replications:ro
+      - ./db/replications/common:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "55432:5432"
+    networks:
+      - travel_planner_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel -d travel_planner_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
         limits:
           cpus: '1.0'
           memory: 1G
@@ -32,23 +99,22 @@ services:
   # ================================================
   app:
     build:
-      context: .  # Папка з Dockerfile
+      context: .
       dockerfile: Dockerfile
-      target: runtime  # Цільовий етап збірки (multi-stage build)
+      target: runtime
     container_name: travel_planner_api
     restart: unless-stopped
     environment:
-      # URL для підключення до бази даних PostgreSQL
-      DATABASE_URL: postgresql://${DB_USER:-travel_user}:${DB_PASSWORD:-secure_password}@postgres:5432/${DB_NAME:-travel_planner}
+      DATABASE_URL: postgresql://travel:${DB_PASSWORD:-secure_password}@postgres:5432/travel_planner_prod
     ports:
-      - "${APP_PORT:-4567}:4567"  # Проброс порту з контейнера на хост
+      - "${APP_PORT:-4567}:4567"
     depends_on:
       postgres:
-        condition: service_healthy  # Чекати, поки база буде готова
+        condition: service_healthy
     networks:
       - travel_planner_network
     deploy:
-      resources:  # Обмеження ресурсів
+      resources:
         limits:
           cpus: '0.5'
           memory: 512M
@@ -57,26 +123,22 @@ services:
   # K6 Performance Testing
   # ================================================
   k6:
-    image: grafana/k6:latest  # Образ для навантажувального тестування
+    image: grafana/k6:latest
     container_name: k6_tester
     volumes:
-      - ./performance-tests:/performance-tests  # Підключення локальної папки з тестами
-    working_dir: /performance-tests  # Робоча директорія всередині контейнера
+      - ./performance-tests:/performance-tests
+    working_dir: /performance-tests
     networks:
       - travel_planner_network
     depends_on:
-      - app  # Чекати запуск API перед тестами
+      - app
 
-# ================================================
-# Том для збереження даних PostgreSQL
-# ================================================
 volumes:
   postgres_data:
     driver: local
+  postgres_replica_data:
+    driver: local
 
-# ================================================
-# Мережа для взаємодії між контейнерами
-# ================================================
 networks:
   travel_planner_network:
     driver: bridge
