@@ -156,7 +156,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker/doker-html-report_smoke-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_smoke-test.html `
    k6 run /performance-tests/tests/smoke-test.js
 
 
@@ -168,7 +168,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker/doker-html-report_crud-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_crud-load-test.html `
    k6 run /performance-tests/tests/crud-load-test.js
    
    
@@ -180,7 +180,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker/doker-html-report_write-heavy-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_write-heavy-load-test.html `
    k6 run /performance-tests/tests/write-heavy-load-test.js
    
    
@@ -192,7 +192,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker/doker-html-report_spike-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_spike-test.html `
    k6 run /performance-tests/tests/spike-test.js
    
    
@@ -204,5 +204,5 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker/doker-html-report_read-heavy-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_read-heavy-load-test.html `
    k6 run /performance-tests/tests/read-heavy-load-test.js
