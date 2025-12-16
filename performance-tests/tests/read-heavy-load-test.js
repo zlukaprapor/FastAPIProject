@@ -83,9 +83,9 @@ export const options = {
       exec: 'readHeavyPath',
       startVUs: 0,
       stages: [
-        { duration: '5m', target: 60 },   // Ramp-up до 60 читачів
-        { duration: '30m', target: 60 },   // Стабільне читання
-        { duration: '5m', target: 0 },    // Ramp-down
+        { duration: '3m', target: 60 },   // Ramp-up до 60 читачів
+        { duration: '14m', target: 60 },   // Стабільне читання
+        { duration: '3m', target: 0 },    // Ramp-down
       ],
       gracefulRampDown: '30s',
     },
@@ -98,12 +98,12 @@ export const options = {
       exec: 'writeHeavyPath',
       startVUs: 0,
       stages: [
-        { duration: '5m', target: 15 },   // Ramp-up до 15 авторів
-        { duration: '30m', target: 15 },   // Стабільний запис
-        { duration: '5m', target: 0 },    // Ramp-down
+        { duration: '3m', target: 15 },   // Ramp-up до 15 авторів
+        { duration: '14m', target: 15 },   // Стабільний запис
+        { duration: '3m', target: 0 },    // Ramp-down
       ],
-      gracefulRampDown: '1m',
-      startTime: '1m', // Починаємо після того як readers створять дані
+      gracefulRampDown: '30s',
+      startTime: '30s', // Починаємо після того як readers створять дані
     },
   },
 

@@ -490,6 +490,6 @@ export function teardown(data) {
   console.log('  - session_duration_seconds (includes think time)');
   console.log('');
   console.log('This test simulates real user behavior with natural pauses.');
-  console.log('Lower throughput than other tests is expected and normal.');
+  console.log('Lower throughput than other testsOLD is expected and normal.');
   console.log('='.repeat(80));
 }

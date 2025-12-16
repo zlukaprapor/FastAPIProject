@@ -149,60 +149,50 @@ docker-compose down -v
 
 K6
 Завдання 1:
-k6 run performance-tests/tests/smoke-test.js
-##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/smoke-test.js
-$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/lab4/doker/html-report_smoke-test.html"; k6 run performance-tests/tests/smoke-test.js
+
 docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_smoke-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_smoke.html `
    k6 run /performance-tests/tests/smoke-test.js
 
 
 Завдання 2:
-k6 run performance-tests/tests/crud-load-test.js
-##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/crud-load-test.js
-$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/lab4/doker/html-report_crud-load-test.html"; k6 run performance-tests/tests/v2/crud-load-test.js
+
 docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_crud-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_crud-load.html `
    k6 run /performance-tests/tests/crud-load-test.js
    
    
 Завдання 3:
-k6 run performance-tests/tests/write-heavy-load-test.js
-##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/write-heavy-load-test.js
-$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/lab4/doker/html-report_write-heavy-load-test.html"; k6 run performance-tests/tests/v2/write-heavy-load-test.js
+
 docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_write-heavy-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_write-heavy-load.html `
    k6 run /performance-tests/tests/write-heavy-load-test.js
    
    
 Завдання 4:
-k6 run performance-tests/tests/spike-test.js
-##k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/spike-test.js
-$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/v2/vm/html-report_spike-test.html"; k6 run performance-tests/tests/v2/spike-test.js
+
 docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_spike-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_spike.html `
    k6 run /performance-tests/tests/spike-test.js
    
    
 Завдання 5:
-k6 run performance-tests/tests/read-heavy-load-test.js
-k6 run --out influxdb=http://localhost:8086/k6 performance-tests/tests/read-heavy-load-test.js
-$env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="performance-tests/reports/v2/vm/html-report_read-heavy-load-test.html"; k6 run performance-tests/tests/v2/read-heavy-load-test.js
+
 docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab4/doker2/doker-html-report_read-heavy-load-test.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_read-heavy-load.html `
    k6 run /performance-tests/tests/read-heavy-load-test.js
