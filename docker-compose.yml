@@ -2,65 +2,109 @@ name: travel_planner
 
 services:
   # =============================
-  # PRIMARY   (MASTER)
+  # SHARD 0 (містить db_0, db_1, db_2, db_3)
   # =============================
-  postgres:
+  postgres_00:
     image: postgres:18-alpine
-    container_name: travel_planner_db
+    container_name: postgres_00
     restart: unless-stopped
     environment:
-      POSTGRES_DB: travel_planner_prod
       POSTGRES_USER: travel
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_PASSWORD: Ur3agd026323!
+      SHARD_ID: 0
     command:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
-      - "-c"
-      - "wal_level=replica"
-      - "-c"
-      - "max_wal_senders=10"
-      - "-c"
-      - "max_replication_slots=10"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_00_data:/var/lib/postgresql/data
+      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
       - ./db/migrations:/docker-entrypoint-migrations:ro
-      - ./db/replications/common:/docker-entrypoint-initdb.d:ro
-
     networks:
       - travel_planner_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel -d travel_planner_prod"]
+      test: ["CMD-SHELL", "pg_isready -U travel"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # =============================
-  # REPLICA (STANDBY)
+  # SHARD 1 (містить db_4, db_5, db_6, db_7)
   # =============================
-  postgres_sub:
+  postgres_01:
     image: postgres:18-alpine
-    container_name: travel_planner_replica
+    container_name: postgres_01
     restart: unless-stopped
     environment:
       POSTGRES_USER: travel
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_PASSWORD: Ur3agd026323!
+      SHARD_ID: 1
     command:
       - "postgres"
       - "-c"
-      - "hot_standby=on"
+      - "listen_addresses=*"
     volumes:
-      - postgres_replica_data:/var/lib/postgresql/data
-      - ./db/replications/replica_init:/docker-entrypoint-initdb.d:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-
+      - postgres_01_data:/var/lib/postgresql/data
+      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
+      - ./db/migrations:/docker-entrypoint-migrations:ro
     networks:
       - travel_planner_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel -d travel_planner_prod"]
+      test: ["CMD-SHELL", "pg_isready -U travel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================
+  # SHARD 2 (містить db_8, db_9, db_a, db_b)
+  # =============================
+  postgres_02:
+    image: postgres:18-alpine
+    container_name: postgres_02
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: Ur3agd026323!
+      SHARD_ID: 2
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+    volumes:
+      - postgres_02_data:/var/lib/postgresql/data
+      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
+      - ./db/migrations:/docker-entrypoint-migrations:ro
+    networks:
+      - travel_planner_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================
+  # SHARD 3 (містить db_c, db_d, db_e, db_f)
+  # =============================
+  postgres_03:
+    image: postgres:18-alpine
+    container_name: postgres_03
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: Ur3agd026323!
+      SHARD_ID: 3
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+    volumes:
+      - postgres_03_data:/var/lib/postgresql/data
+      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
+      - ./db/migrations:/docker-entrypoint-migrations:ro
+    networks:
+      - travel_planner_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -76,19 +120,23 @@ services:
     container_name: travel_planner_api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://travel:${DB_PASSWORD:-secure_password}@postgres:5432/travel_planner_prod
+      DB_USER: travel
+      DB_PASSWORD: Ur3agd026323!
     ports:
-      - "${APP_PORT:-4567}:4567"
+      - "4567:4567"
     depends_on:
-      postgres:
+      postgres_00:
+        condition: service_healthy
+      postgres_01:
+        condition: service_healthy
+      postgres_02:
+        condition: service_healthy
+      postgres_03:
         condition: service_healthy
     networks:
       - travel_planner_network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
+    volumes:
+      - ./mapping.json:/app/mapping.json:ro
 
   # =============================
   # Performance Testing (K6)
@@ -105,10 +153,10 @@ services:
       - app
 
 volumes:
-  postgres_data:
-    driver: local
-  postgres_replica_data:
-    driver: local
+  postgres_00_data:
+  postgres_01_data:
+  postgres_02_data:
+  postgres_03_data:
 
 networks:
   travel_planner_network:

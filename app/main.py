@@ -7,29 +7,15 @@ from json import JSONDecodeError
 import time
 import re
 
-# ВАЖЛИВО: Імпортуємо database та Base ПЕРЕД створенням app
-from app.database import engine, get_db, Base
-
-# КРИТИЧНО: Імпортуємо моделі ПЕРЕД створенням таблиць
+from app.database import Base, check_db_connection
 from app.models import TravelPlan, Location
-
-# Імпортуємо роутери
 from app.routers import travel_plans, locations
 
 app = FastAPI(
-    title="Travel Planner API",
-    description="Simple REST API for planning travel itineraries with locations",
-    version="1.0.0"
+    title="Travel Planner API (Sharded)",
+    description="Travel planner with 16 database shards across 4 PostgreSQL instances",
+    version="2.0.0"
 )
-
-# Створюємо таблиці після імпорту всіх моделей
-print("Creating database tables...")
-try:
-    Base.metadata.create_all(bind=engine)
-    print("Tables created successfully!")
-except Exception as e:
-    print(f"Error creating tables: {e}")
-    raise
 
 # Include routers
 app.include_router(travel_plans.router)
@@ -40,17 +26,14 @@ app.include_router(locations.router)
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Уніфікуємо всі HTTPException під формат з полем error"""
     if isinstance(exc.detail, str):
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.detail}
         )
     if isinstance(exc.detail, dict):
-        # Якщо у словнику вже є error – віддаємо як є
         if "error" in exc.detail:
             return JSONResponse(status_code=exc.status_code, content=exc.detail)
-        # Інакше обгортаємо
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": str(exc.detail)}
@@ -162,71 +145,51 @@ async def general_exception_handler(request: Request, exc: Exception):
 @app.get("/health")
 async def health_check():
     from sqlalchemy import text
-    try:
-        db = next(get_db())
-        start_time = time.time()
-        db.execute(text("SELECT 1"))
-        response_time = (time.time() - start_time) * 1000
+    from app.database import SESSION_MAKERS
 
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "database": {
+    shard_status = {}
+    all_healthy = True
+
+    for shard_key, session_maker in SESSION_MAKERS.items():
+        try:
+            db = session_maker()
+            start_time = time.time()
+            db.execute(text("SELECT 1"))
+            response_time = (time.time() - start_time) * 1000
+            db.close()
+
+            shard_status[f"shard_{shard_key}"] = {
                 "status": "healthy",
                 "responseTime": round(response_time, 2)
             }
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
+        except Exception as e:
+            all_healthy = False
+            shard_status[f"shard_{shard_key}"] = {
                 "status": "unhealthy",
-                "timestamp": datetime.utcnow().isoformat(),
-                "database": {
-                    "status": "unhealthy",
-                    "error": str(e)
-                }
+                "error": str(e)
             }
-        )
+
+    return {
+        "status": "healthy" if all_healthy else "degraded",
+        "timestamp": datetime.utcnow().isoformat(),
+        "shards": shard_status
+    }
 
 
 @app.on_event("startup")
 async def startup_event():
-    from sqlalchemy import text
     print("=" * 50)
-    print("Starting Travel Planner API...")
-    try:
-        db = next(get_db())
-        db.execute(text("SELECT 1"))
-        print("✓ Database connection successful")
+    print("Starting Travel Planner API (Sharded)...")
 
-        result = db.execute(text("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-            ORDER BY table_name
-        """))
-        tables = [row[0] for row in result]
-        print(f"✓ Tables in database: {tables}")
+    if check_db_connection():
+        print("✓ All shard connections successful")
+    else:
+        print("✗ Some shard connections failed")
 
-        triggers_result = db.execute(text("""
-            SELECT trigger_name 
-            FROM information_schema.triggers 
-            WHERE trigger_schema = 'public'
-            ORDER BY trigger_name
-        """))
-        triggers = [row[0] for row in triggers_result]
-        if triggers:
-            print(f"✓ Triggers in database: {triggers}")
-
-        db.close()
-
-    except Exception as e:
-        print(f"✗ Database connection failed: {e}")
-        raise
     print("=" * 50)
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+
+    uvicorn.run(app, host="0.0.0.0", port=4567)

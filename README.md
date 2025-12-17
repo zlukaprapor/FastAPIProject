@@ -154,7 +154,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_smoke.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_smoke.html `
    k6 run /performance-tests/tests/smoke-test.js
 
 
@@ -164,7 +164,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_crud-load.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_crud-load.html `
    k6 run /performance-tests/tests/crud-load-test.js
    
    
@@ -174,7 +174,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_write-heavy-load.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_write-heavy-load.html `
    k6 run /performance-tests/tests/write-heavy-load-test.js
    
    
@@ -184,7 +184,7 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_spike.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_spike.html `
    k6 run /performance-tests/tests/spike-test.js
    
    
@@ -194,5 +194,5 @@ docker compose run --rm `
    -v "${PWD}/performance-tests:/performance-tests" `
    -e BASE_URL=http://app:4567 `
    -e K6_WEB_DASHBOARD=true `
-   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/monolit-report_read-heavy-load.html `
+   -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_read-heavy-load.html `
    k6 run /performance-tests/tests/read-heavy-load-test.js

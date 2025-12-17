@@ -1,81 +1,92 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import json
 import os
+from uuid import UUID
 
-# Спочатку спробуємо завантажити .env
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass  # python-dotenv не встановлено, це нормально
-
-# Отримуємо DATABASE_URL з різних джерел
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Якщо не знайдено в environment variables, використовуємо значення за замовчуванням
-if not DATABASE_URL or DATABASE_URL == "":
-    # ВАЖЛИВО: Замініть пароль на ваш реальний пароль PostgreSQL
-    DATABASE_URL = "postgresql://postgres:Ur3agd026323!@localhost:5432/travel_planner"
-    print("⚠ WARNING: Using hardcoded DATABASE_URL")
-    print("  Consider setting DATABASE_URL environment variable for security")
-
-# Виводимо інформацію про підключення (без пароля)
-try:
-    # Парсимо URL для безпечного виводу
-    from urllib.parse import urlparse
-
-    parsed = urlparse(DATABASE_URL)
-    safe_url = f"{parsed.scheme}://{parsed.username}:***@{parsed.hostname}:{parsed.port}{parsed.path}"
-    print(f"📊 Database: {safe_url}")
-except:
-    print(f"📊 Database configured")
-
-# Створюємо engine з додатковим логуванням для відлагодження
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,  # Встановіть True для детального SQL логування
-    pool_pre_ping=True,  # Перевіряє з'єднання перед використанням
-    pool_size=5,
-    max_overflow=10
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Створюємо Base тут, щоб він був доступний для моделей
 Base = declarative_base()
 
+# Завантажуємо mapping
+MAPPING_FILE = os.getenv("MAPPING_FILE", "mapping.json")
+with open(MAPPING_FILE, "r") as f:
+    SHARD_MAPPING = json.load(f)
 
-def get_db():
-    """Dependency для отримання сесії бази даних"""
-    db = SessionLocal()
+# Connection pools для кожного шарду
+ENGINES = {}
+SESSION_MAKERS = {}
+
+for shard_key, db_url in SHARD_MAPPING.items():
+    engine = create_engine(
+        db_url,
+        echo=False,
+        pool_pre_ping=True,
+        pool_size=2,
+        max_overflow=5
+    )
+    ENGINES[shard_key] = engine
+    SESSION_MAKERS[shard_key] = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+print(f"✓ Initialized {len(ENGINES)} shard connections")
+
+
+def get_shard_key(plan_id: UUID) -> str:
+    """Отримує ключ шарду з останнього символу UUID"""
+    return str(plan_id).lower()[-1]
+
+
+def get_db_for_shard(shard_key: str):
+    """Повертає сесію для конкретного шарду"""
+    if shard_key not in SESSION_MAKERS:
+        raise ValueError(f"Invalid shard key: {shard_key}")
+
+    session = SESSION_MAKERS[shard_key]()
     try:
-        yield db
+        yield session
     finally:
-        db.close()
+        session.close()
+
+
+def get_db_for_plan(plan_id: UUID):
+    """Повертає сесію для конкретного плану"""
+    shard_key = get_shard_key(plan_id)
+    return get_db_for_shard(shard_key)
+
+
+def get_all_dbs():
+    """Повертає генератор сесій для всіх шардів"""
+    sessions = []
+    try:
+        for shard_key in SHARD_MAPPING.keys():
+            session = SESSION_MAKERS[shard_key]()
+            sessions.append(session)
+            yield session
+    finally:
+        for session in sessions:
+            session.close()
 
 
 def init_db():
-    """Ініціалізація бази даних - створення всіх таблиць"""
-    # Імпортуємо моделі тут, щоб Base знав про них
+    """Ініціалізація всіх БД"""
     from app import models
-
-    print("Initializing database...")
-    Base.metadata.create_all(bind=engine)
-    print("Database initialized successfully!")
+    print("Initializing all shard databases...")
+    for shard_key, engine in ENGINES.items():
+        print(f"  Creating tables in shard {shard_key}")
+        Base.metadata.create_all(bind=engine)
+    print("✓ All shards initialized!")
 
 
 def check_db_connection():
-    """Перевірка підключення до бази даних"""
-    try:
-        from sqlalchemy import text
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        print("✓ Database connection test: SUCCESS")
-        return True
-    except Exception as e:
-        print(f"✗ Database connection test: FAILED")
-        print(f"  Error: {e}")
-        return False
+    """Перевірка підключення до всіх шардів"""
+    from sqlalchemy import text
+    all_ok = True
+    for shard_key, session_maker in SESSION_MAKERS.items():
+        try:
+            session = session_maker()
+            session.execute(text("SELECT 1"))
+            session.close()
+            print(f"✓ Shard {shard_key}: OK")
+        except Exception as e:
+            print(f"✗ Shard {shard_key}: FAILED - {e}")
+            all_ok = False
+    return all_ok
