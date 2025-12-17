@@ -16,6 +16,8 @@ services:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
+      - "-c"
+      - "max_prepared_transactions=100"
     volumes:
       - postgres_00_data:/var/lib/postgresql/data
       - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
@@ -43,6 +45,8 @@ services:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
+      - "-c"
+      - "max_prepared_transactions=100"
     volumes:
       - postgres_01_data:/var/lib/postgresql/data
       - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
@@ -70,6 +74,8 @@ services:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
+      - "-c"
+      - "max_prepared_transactions=100"
     volumes:
       - postgres_02_data:/var/lib/postgresql/data
       - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
@@ -97,6 +103,8 @@ services:
       - "postgres"
       - "-c"
       - "listen_addresses=*"
+      - "-c"
+      - "max_prepared_transactions=100"
     volumes:
       - postgres_03_data:/var/lib/postgresql/data
       - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro

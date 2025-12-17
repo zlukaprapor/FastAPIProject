@@ -196,3 +196,7 @@ docker compose run --rm `
    -e K6_WEB_DASHBOARD=true `
    -e K6_WEB_DASHBOARD_EXPORT=/performance-tests/reports/lab6/shard-report_read-heavy-load.html `
    k6 run /performance-tests/tests/read-heavy-load-test.js
+
+
+
+$ MSYS_NO_PATHCONV=1 docker compose exec app python3 tools/apply_all.py /app/db/migrations/001_create_tables_postgres.sql --mapping /app/mapping.json
