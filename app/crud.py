@@ -1,45 +1,53 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, update
 from app import models, schemas
-from uuid import UUID
+from app.database import get_all_dbs, get_db_for_plan
+from uuid import UUID, uuid4
 from fastapi import HTTPException
 
 
-def get_all_plans(db: Session):
-    plans = db.query(
-        models.TravelPlan,
-        func.count(models.Location.id).label('location_count')
-    ).outerjoin(models.Location).group_by(models.TravelPlan.id).all()
-
+def get_all_plans(db: Session = None):
+    """Отримує всі плани з усіх шардів"""
     result = []
-    for plan, count in plans:
-        plan_dict = {
-            "id": plan.id,
-            "title": plan.title,
-            "description": plan.description,
-            "start_date": plan.start_date,
-            "end_date": plan.end_date,
-            "budget": plan.budget,
-            "currency": plan.currency,
-            "is_public": plan.is_public,
-            "version": plan.version,
-            "created_at": plan.created_at,
-            "updated_at": plan.updated_at,
-            "location_count": count
-        }
-        result.append(plan_dict)
+
+    for shard_db in get_all_dbs():
+        plans = shard_db.query(
+            models.TravelPlan,
+            func.count(models.Location.id).label('location_count')
+        ).outerjoin(models.Location).group_by(models.TravelPlan.id).all()
+
+        for plan, count in plans:
+            plan_dict = {
+                "id": plan.id,
+                "title": plan.title,
+                "description": plan.description,
+                "start_date": plan.start_date,
+                "end_date": plan.end_date,
+                "budget": plan.budget,
+                "currency": plan.currency,
+                "is_public": plan.is_public,
+                "version": plan.version,
+                "created_at": plan.created_at,
+                "updated_at": plan.updated_at,
+                "location_count": count
+            }
+            result.append(plan_dict)
+
     return result
 
 
 def get_plan_by_id(db: Session, plan_id: UUID):
+    """Отримує план за ID (db вже правильний шард)"""
     plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Travel plan not found")
     return plan
 
 
-def create_plan(db: Session, plan_data: schemas.CreateTravelPlanRequest):
+def create_plan(db: Session, plan_id: UUID, plan_data: schemas.CreateTravelPlanRequest):
+    """Створює новий план із ЗАЗДАЛЕГІДЬ згенерованим UUID (керуємо шардінгом)"""
     new_plan = models.TravelPlan(
+        id=plan_id,
         title=plan_data.title,
         description=plan_data.description,
         start_date=plan_data.start_date,
@@ -49,6 +57,7 @@ def create_plan(db: Session, plan_data: schemas.CreateTravelPlanRequest):
         is_public=plan_data.is_public,
         version=1
     )
+
     db.add(new_plan)
     db.commit()
     db.refresh(new_plan)
@@ -58,7 +67,6 @@ def create_plan(db: Session, plan_data: schemas.CreateTravelPlanRequest):
 def update_plan(db: Session, plan_id: UUID, plan_data: schemas.UpdateTravelPlanRequest):
     old_version = plan_data.version
 
-    # Optimistic locking
     result = db.execute(
         update(models.TravelPlan)
         .where(models.TravelPlan.id == plan_id, models.TravelPlan.version == old_version)
@@ -76,11 +84,9 @@ def update_plan(db: Session, plan_id: UUID, plan_data: schemas.UpdateTravelPlanR
     db.commit()
 
     if result.rowcount == 0:
-        # Check if plan exists
         existing_plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).first()
         if not existing_plan:
             raise HTTPException(status_code=404, detail="Travel plan not found")
-        # Version conflict
         raise HTTPException(
             status_code=409,
             detail={
@@ -90,7 +96,6 @@ def update_plan(db: Session, plan_id: UUID, plan_data: schemas.UpdateTravelPlanR
             }
         )
 
-    # Fetch updated plan
     updated_plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).first()
     return updated_plan
 
@@ -105,12 +110,10 @@ def delete_plan(db: Session, plan_id: UUID):
 
 
 def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocationRequest):
-    # Check if plan exists
     plan = db.query(models.TravelPlan).filter(models.TravelPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Travel plan not found")
 
-    # Перевірка версії плану
     if plan.version != location_data.plan_version:
         raise HTTPException(
             status_code=409,
@@ -121,7 +124,6 @@ def add_location(db: Session, plan_id: UUID, location_data: schemas.CreateLocati
             }
         )
 
-    # Якщо visit_order не переданий -> визначаємо наступний
     visit_order = location_data.visit_order
     if visit_order is None:
         max_order = db.query(func.max(models.Location.visit_order)) \
@@ -186,7 +188,6 @@ def update_location(db: Session, location_id: UUID, location_data: schemas.Updat
                 "message": "Please refresh the plan and try again"
             }
         )
-
 
     update_data = location_data.model_dump(exclude_unset=True, exclude={'plan_version'})
 
