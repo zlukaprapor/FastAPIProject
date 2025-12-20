@@ -1,125 +1,17 @@
 name: travel_planner
 
 services:
-  # =============================
-  # SHARD 0 (містить db_0, db_1, db_2, db_3)
-  # =============================
-  postgres_00:
-    image: postgres:18-alpine
-    container_name: postgres_00
+  mongo:
+    image: mongo:7
+    container_name: travel_planner_mongo
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: travel
-      POSTGRES_PASSWORD: Ur3agd026323!
-      SHARD_ID: 0
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "max_prepared_transactions=100"
+    ports:
+      - "27017:27017"
     volumes:
-      - postgres_00_data:/var/lib/postgresql/data
-      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
-      - ./db/migrations:/docker-entrypoint-migrations:ro
+      - mongo_data:/data/db
     networks:
       - travel_planner_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # =============================
-  # SHARD 1 (містить db_4, db_5, db_6, db_7)
-  # =============================
-  postgres_01:
-    image: postgres:18-alpine
-    container_name: postgres_01
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: travel
-      POSTGRES_PASSWORD: Ur3agd026323!
-      SHARD_ID: 1
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "max_prepared_transactions=100"
-    volumes:
-      - postgres_01_data:/var/lib/postgresql/data
-      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
-      - ./db/migrations:/docker-entrypoint-migrations:ro
-    networks:
-      - travel_planner_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # =============================
-  # SHARD 2 (містить db_8, db_9, db_a, db_b)
-  # =============================
-  postgres_02:
-    image: postgres:18-alpine
-    container_name: postgres_02
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: travel
-      POSTGRES_PASSWORD: Ur3agd026323!
-      SHARD_ID: 2
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "max_prepared_transactions=100"
-    volumes:
-      - postgres_02_data:/var/lib/postgresql/data
-      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
-      - ./db/migrations:/docker-entrypoint-migrations:ro
-    networks:
-      - travel_planner_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # =============================
-  # SHARD 3 (містить db_c, db_d, db_e, db_f)
-  # =============================
-  postgres_03:
-    image: postgres:18-alpine
-    container_name: postgres_03
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: travel
-      POSTGRES_PASSWORD: Ur3agd026323!
-      SHARD_ID: 3
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "max_prepared_transactions=100"
-    volumes:
-      - postgres_03_data:/var/lib/postgresql/data
-      - ./db/init_shards.sh:/docker-entrypoint-initdb.d/init_shards.sh:ro
-      - ./db/migrations:/docker-entrypoint-migrations:ro
-    networks:
-      - travel_planner_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # =============================
-  # API
-  # =============================
   app:
     build:
       context: .
@@ -128,43 +20,18 @@ services:
     container_name: travel_planner_api
     restart: unless-stopped
     environment:
-      DB_USER: travel
-      DB_PASSWORD: Ur3agd026323!
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: travel_planner
     ports:
       - "4567:4567"
     depends_on:
-      postgres_00:
-        condition: service_healthy
-      postgres_01:
-        condition: service_healthy
-      postgres_02:
-        condition: service_healthy
-      postgres_03:
-        condition: service_healthy
+      - mongo
     networks:
       - travel_planner_network
-    volumes:
-      - ./mapping.json:/app/mapping.json:ro
-
-  # =============================
-  # Performance Testing (K6)
-  # =============================
-  k6:
-    image: grafana/k6:latest
-    container_name: k6_tester
-    volumes:
-      - ./performance-tests:/performance-tests
-    working_dir: /performance-tests
-    networks:
-      - travel_planner_network
-    depends_on:
-      - app
 
 volumes:
-  postgres_00_data:
-  postgres_01_data:
-  postgres_02_data:
-  postgres_03_data:
+  mongo_data:
+    driver: local
 
 networks:
   travel_planner_network:
